@@ -134,9 +134,13 @@ def get_merged_data():
         sdm.laterp_occipital = sdm.erp[:, 'O1'] - sdm.erp[:, 'O2']
         sdm.pupil = sdm.pupil @ area_to_mm
         sdm.mean_pupil = sdm.pupil[:, 0:25][:, ...]
+        sdm.pupil_slope = sdm.pupil[:, 125:150][:, ...] - sdm.mean_pupil
         sdm.mean_pupil_area = sdm.mean_pupil ** 2
         sdm.bl_pupil = srs.baseline(sdm.pupil, sdm.pupil, 0, 50)
         sdm.z_pupil = ops.z(sdm.mean_pupil)
+        sdm.z_pupil_slope = ops.z(sdm.pupil_slope)
+        sdm.pupil_dilation = 'Constricting'
+        sdm.pupil_dilation[sdm.pupil_slope > 0] = 'Dilating'
         sdm.z_erg = ops.z(sdm.erg[:, 90:110][:, ...])
         dm <<= sdm
     dm = dm.z_erg != np.nan
