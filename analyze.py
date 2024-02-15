@@ -4,6 +4,9 @@
 from analysis_utils import *
 
 dm = get_merged_data()
+print(f'before blink removal: {len(dm)}')
+dm = (dm.blink_latency < 0) | (dm.blink_latency > .5)
+print(f'after blink removal: {len(dm)}')
 fdm = dm.field == 'full'
 
 
@@ -24,7 +27,7 @@ plt.xticks(np.arange(0, 201, 50), np.arange(-50, 151, 50))
 plt.xlabel('Time since flash onset (ms)')
 plt.ylabel('Voltage')
 plt.legend()
-plt.savefig('svg/eog-channels.svg')
+plt.savefig(FOLDER_SVG / 'eog-channels.svg')
 plt.show()
 
 
@@ -64,7 +67,7 @@ plt.axvline(.06, color='black', linestyle=':')
 plt.axvline(.08, color='black', linestyle=':')
 plt.axvline(.1, color='black', linestyle=':')
 plt.ylim(-9e-6, 9e-6)
-plt.savefig('svg/eog-channels-by-blink.svg')
+plt.savefig(FOLDER_SVG / 'eog-channels-by-blink.svg')
 plt.show()
 
 
@@ -75,7 +78,7 @@ plt.figure(figsize=(8, 4))
 bdm = fdm.blink_latency > 0
 sns.histplot(list(bdm.blink_latency), bins=20, binrange=(0, 1))
 plt.xlabel('Time since flash onset (s)')
-plt.savefig('svg/blink-histogram.svg')
+plt.savefig(FOLDER_SVG / 'blink-histogram.svg')
 plt.show()
 
 
@@ -87,7 +90,7 @@ tst.plot(fdm, dv='pupil', x0=0, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Intensity (cd/m2)'})
 plt.ylabel('Pupil size (mm)')
 plt.xlabel('Time since flash onset (s)')
-plt.savefig('svg/pupil-by-intensity.svg')
+plt.savefig(FOLDER_SVG / 'pupil-by-intensity.svg')
 plt.show()
 
 
@@ -123,7 +126,7 @@ plt.axhline(0, color='black', linestyle=':')
 plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
-plt.savefig('svg/erg-and-eeg-by-intensity.svg')
+plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-intensity.svg')
 plt.show()
 
 
@@ -161,7 +164,7 @@ plt.axhline(0, color='black', linestyle=':')
 plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
-plt.savefig('svg/erg-and-eeg-by-horizontal-field.svg')
+plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-horizontal-field.svg')
 plt.show()
 
 
@@ -197,7 +200,7 @@ plt.axhline(0, color='black', linestyle=':')
 plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
-plt.savefig('svg/erg-and-eeg-by-vertical-field.svg')
+plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-vertical-field.svg')
 plt.show()
 
 
@@ -246,7 +249,7 @@ plt.axhline(0, color='black', linestyle=':')
 plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
-plt.savefig('svg/erg-and-eeg-by-pupil-size-bin.svg')
+plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-pupil-size-bin.svg')
 
 
 """
@@ -265,9 +268,17 @@ plt.axhline(0, color='black', linestyle=':')
 plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
-plt.savefig('svg/erg-by-pupil-dilation.svg')
+plt.savefig(FOLDER_SVG / 'erg-by-pupil-dilation.svg')
 plt.show()
 
+
+"""
+# The relationship between pupil-size change and pupil size
+"""
+tst.plot(dm, dv='pupil', hue_factor='pupil_dilation')
+sns.pointplot(y='mean_pupil', x='pupil_dilation', data=fdm)
+plt.plot(fdm.mean_pupil, fdm.pupil_slope, '.')
+sns.histplot(list(fdm.mean_pupil))
 
 """
 Plot voltage by pupil size and intensity for specific time points
@@ -301,7 +312,7 @@ plt.ylim(*YLIM)
 plt.legend(title='Pupil size (bin)')
 plt.xlabel('Intensity (cd/m2)')
 plt.yticks([])
-plt.savefig('svg/erg-by-pupil-size-bin-and-intensity.svg')
+plt.savefig(FOLDER_SVG / 'erg-by-pupil-size-bin-and-intensity.svg')
 plt.show()
 
 
@@ -333,7 +344,7 @@ for i, t in enumerate(times):
     plt.title(f'Time {t} - {t + dt} ms')
     mne.viz.plot_topomap(data[i], pos, size=4, vlim=(data.min(), data.max()),
                          axes=ax, show=False)
-    plt.savefig(f'svg/topomaps/topomap-{t}.svg')
+    plt.savefig(FOLDER_TOPOMAPS / f'topomap-{t}.svg')
     plt.show()
 
 
@@ -380,7 +391,7 @@ for subject_nr, sdm in ops.split(fdm.subject_nr):
 plt.xticks(np.arange(0, maxlag - minlag, 5), np.arange(minlag, maxlag, 5))
 plt.ylabel('Granger causality')
 plt.xlabel('Lag (ms)')
-plt.savefig('svg/granger-causality.svg')
+plt.savefig(FOLDER_SVG / 'granger-causality.svg')
 
 
 """
@@ -389,25 +400,24 @@ plt.savefig('svg/granger-causality.svg')
 Predict ERGs and ERPs based on intensity and pupil size.
 """
 fdm.erg50 = fdm.erg[:, 50:]
+fdm.erp50 = fdm.erp_occipital[:, 50:]
 fdm.z_int = ops.z(fdm.intensity_cdm2)
 fdm.z_pup = ops.z(fdm.mean_pupil_area)
 fdm.z_slo = ops.z(fdm.pupil_slope)
-# stats_erg = tst.lmer_permutation_test(
-#     fdm, 'erg_test ~ z_int * z_pup * z_slo',
-#     groups='subject_nr')
+stats_erg = tst.lmer_permutation_test(
+    fdm, 'erg50 ~ z_int + z_pup + z_slo',
+    groups='subject_nr')
+stats_erg = tst.lmer_permutation_test(
+    fdm, 'erp50 ~ z_int + z_pup + z_slo',
+    groups='subject_nr')
 
-# stats_erp = tst.lmer_permutation_test(
-#     dm.field == 'full', 'erp_occipital ~ intensity_cdm2 + mean_pupil_area',
-#     groups='subject_nr')
-
-
-result = tst.lmer_series(fdm,
-    'erg50 ~ z_int * z_pup * z_slo',
-    groups='subject_nr', winlen=2)
-for row in result[1:]:
-    plt.plot(row.z, label=row.effect)
-plt.axhline(0, color='black', linestyle=':')
-plt.axhline(1.96, color='black', linestyle=':')
-plt.axhline(-1.96, color='black', linestyle=':')
-plt.legend()
-plt.show()
+# result = tst.lmer_series(fdm,
+#     'erg50 ~ z_int + z_pup + z_slo',
+#     groups='subject_nr', winlen=2)
+# for row in result[1:]:
+#     plt.plot(row.z, label=row.effect)
+# plt.axhline(0, color='black', linestyle=':')
+# plt.axhline(1.96, color='black', linestyle=':')
+# plt.axhline(-1.96, color='black', linestyle=':')
+# plt.legend()
+# plt.show()

@@ -11,10 +11,12 @@ import mne
 from datamatrix import DataMatrix, convert as cnv, operations as ops, \
     series as srs, functional as fnc
 import numpy as np
+from scipy.stats import linregress
+from pathlib import Path
 
-SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92
+SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92, 101, 102
 EEG_EPOCH = -0.05, 0.15
-CHECKPOINT = '02022024'
+CHECKPOINT = '15022024.dm'
 PUPIL_EPOCH = 0, 1.5
 ERG_PEAK1 = .047
 ERG_PEAK2 = .076
@@ -41,6 +43,12 @@ INTENSITY_ORD = {
     1: 5
 }
 mne.io.pick._PICK_TYPES_DATA_DICT['misc'] = True
+FOLDER_SVG = Path('svg')
+if not FOLDER_SVG.exists():
+    FOLDER_SVG.mkdir()
+FOLDER_TOPOMAPS = FOLDER_SVG / 'topomaps'
+if not FOLDER_TOPOMAPS.exists():
+    FOLDER_TOPOMAPS.mkdir()
 
 
 # Monkeypatch the preprocessor to avoid EOGs from being subtracted and instead
@@ -132,9 +140,19 @@ def get_merged_data():
             sdm.eog[:, ('VEOGT', 'HEOGR')][:, ...]
         sdm.erp_occipital = sdm.erp[:, ('O1', 'Oz', 'O2')][:, ...]
         sdm.laterp_occipital = sdm.erp[:, 'O1'] - sdm.erp[:, 'O2']
+        # We first convert pupil size to millimeters, and then take the mean
+        # over the first 150 ms (below the response latency), The slope is also
+        # calculated over this initial 150 ms.
         sdm.pupil = sdm.pupil @ area_to_mm
-        sdm.mean_pupil = sdm.pupil[:, 0:25][:, ...]
-        sdm.pupil_slope = sdm.pupil[:, 125:150][:, ...] - sdm.mean_pupil
+        sdm.mean_pupil = sdm.pupil[:, 0:150][:, ...]
+        x = np.arange(150)
+        for row in sdm:
+            result = linregress(x, row.pupil[:150])
+            row.pupil_slope = result.slope
+        # We recode pupil size as surface area (as opposed to diamter),
+        # baseline size, and z-scored values. We also make a binary split
+        # on the slope indicating whether the pupil was constricting or
+        # dilating.
         sdm.mean_pupil_area = sdm.mean_pupil ** 2
         sdm.bl_pupil = srs.baseline(sdm.pupil, sdm.pupil, 0, 50)
         sdm.z_pupil = ops.z(sdm.mean_pupil)
@@ -149,6 +167,8 @@ def get_merged_data():
     dm = dm.z_erg > -Z_THRESHOLD
     dm = dm.z_pupil < Z_THRESHOLD
     dm = dm.z_pupil > -Z_THRESHOLD
+    dm = dm.z_pupil_slope < Z_THRESHOLD
+    dm = dm.z_pupil_slope > -Z_THRESHOLD
     dm = dm.target == 0
     dm.intensity_cdm2 = dm.intensity @ (lambda i: INTENSITY_CDM2[i])
     dm.intensity_ord = dm.intensity @ (lambda i: INTENSITY_ORD[i])
