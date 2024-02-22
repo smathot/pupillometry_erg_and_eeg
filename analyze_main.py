@@ -5,12 +5,14 @@ from analysis_utils import *
 from matplotlib import pyplot as plt
 import time_series_test as tst
 import seaborn as sns
+from datamatrix import SeriesColumn
 
 
 """
 # Load data
 """
 dm = get_merged_data()
+del dm.erp  # free memory
 print(f'before blink removal: {len(dm)}')
 dm = (dm.blink_latency < 0) | (dm.blink_latency > .5)
 print(f'after blink removal: {len(dm)}')
@@ -31,6 +33,17 @@ plt.xlabel('Time since flash onset (s)')
 plt.savefig(FOLDER_SVG / 'pupil-by-intensity.svg')
 plt.show()
 
+
+"""
+# Time-frequency plots
+"""
+Y_FREQS = np.array([0, 4, 9, 25])
+plt.imshow(fdm.eog_tfr[...], aspect='auto')
+plt.yticks(Y_FREQS, FREQS[Y_FREQS])
+plt.xticks(np.arange(0, 30, 3), np.arange(0, .15, .015))
+plt.xlabel('Time (ms)')
+plt.ylabel('Frequency (Hz)')
+    
 
 """
 # Effects of intensity
@@ -155,7 +168,7 @@ Plot the ERG and EEG signals after stimulus onset as a function of pupil size
 # First calculate pupil bins
 fdm.bin_pupil = -1
 fdm.bin_pupil_mm = 0
-for i, bdm in enumerate(ops.bin_split(fdm.z_pupil, 5)):
+for i, bdm in enumerate(ops.bin_split(fdm.z_pupil, 2)):
     fdm.bin_pupil[bdm] = i
     fdm.bin_pupil_mm[bdm] = bdm.mean_pupil.mean
 # Then plot
@@ -277,3 +290,26 @@ plt.xlabel('Intensity (cd/m2)')
 plt.yticks([])
 plt.savefig(FOLDER_SVG / 'erg-by-pupil-size-bin-and-intensity.svg')
 plt.show()
+
+
+"""
+Plot variability by pupil size
+"""
+vdm = DataMatrix(length=fdm.intensity.count * fdm.bin_pupil.count 
+                 * fdm.subject_nr.count)
+vdm.pupil_std = SeriesColumn(depth=fdm.erg.depth - 50)
+for row, (intensity, bin_pupil, subject_nr, sdm) in zip(vdm,
+      ops.split(fdm.intensity, fdm.bin_pupil, fdm.subject_nr)):
+   row.intensity = intensity
+   row.bin_pupil = bin_pupil
+   row.subject_nr = subject_nr
+   row.pupil_std = sdm.erg.std[50:]
+
+for intensity, idm in ops.split(vdm.intensity):
+   tst.plot(idm, dv='pupil_std', hue_factor='bin_pupil')
+   plt.show()
+tst.plot(vdm, dv='pupil_std', hue_factor='bin_pupil')
+
+# vresult = tst.lmer_permutation_test(vdm,
+#    'pupil_std ~ bin_pupil + intensity', groups='subject_nr',
+#    suppress_convergence_warnings=True)

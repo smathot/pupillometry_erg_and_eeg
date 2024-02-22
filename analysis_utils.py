@@ -7,22 +7,26 @@ LOGBOOK: 82, line 263 extraneous trigger
 """
 import eeg_eyetracking_parser as eet
 from eeg_eyetracking_parser import _eeg_preprocessing as eep
-import mne
+import mne; mne.set_log_level(False)
+from mne.time_frequency import tfr_morlet
 from datamatrix import DataMatrix, convert as cnv, operations as ops, \
     series as srs, functional as fnc
 import numpy as np
 from scipy.stats import linregress
 from pathlib import Path
 
-SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92, 101, 102
+SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92
 EEG_EPOCH = -0.05, 0.15
-CHECKPOINT = '15022024.dm'
+CHECKPOINT = '22022024'
 PUPIL_EPOCH = 0, 1.5
 ERG_PEAK1 = .047
 ERG_PEAK2 = .076
 MIN_BLINK_LATENCY = .1
 YLIM = -6e-6, 9e-6
 STIMULUS_TRIGGER = 1
+FREQS = np.arange(4, 30, 1)
+MORLET_MARGIN = .5
+
 Z_THRESHOLD = 3
 # Maps [-1, 1] intensity to cd/m2
 INTENSITY_CDM2 = {
@@ -85,6 +89,27 @@ def area_to_mm(au):
     return -0.9904 + 0.1275 * au ** .5
 
 
+def z_by_freq(col):
+    """Performs z-scoring across trials, channels, and time points but 
+    separately for each frequency.
+    
+    Parameters
+    ----------
+    col: MultiDimensionalColumn
+    
+    Returns
+    -------
+    MultiDimensionalColumn
+    """
+    zcol = col[:]
+    for i in range(zcol.shape[2]):
+        zcol._seq[:, :, i] = (
+            (zcol._seq[:, :, i] - np.nanmean(zcol._seq[:, :, i]))
+            / np.nanstd(zcol._seq[:, :, i])
+        )
+    return zcol
+
+
 def read_subject(subject_nr):
     return eet.read_subject(
         subject_nr, eeg_preprocessing=[
@@ -98,7 +123,7 @@ def read_subject(subject_nr):
             'interpolate_bads'])
     
 
-@fnc.memoize(persistent=True, key=CHECKPOINT)
+@fnc.memoize(persistent=True, key=f'../checkpoints/{CHECKPOINT}.dm')
 def get_merged_data():
     dm = DataMatrix()
     for subject_nr in SUBJECTS:
@@ -130,6 +155,18 @@ def get_merged_data():
             mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
                        tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
                        picks='eeg', metadata=metadata))
+        # Get time-frequency analyses
+        epochs = mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
+                       tmin=EEG_EPOCH[0] - MORLET_MARGIN,
+                       tmax=EEG_EPOCH[0] + MORLET_MARGIN, picks='eog',
+                       metadata=metadata)
+        morlet = tfr_morlet(
+            epochs, freqs=FREQS, n_cycles=2, n_jobs=-1,
+            return_itc=False, use_fft=True, average=False,
+            decim=5, picks=np.arange(len(epochs.info['ch_names'])))
+        morlet.crop(0, EEG_EPOCH[1])
+        sdm.eog_tfr = cnv.from_mne_tfr(morlet)
+        sdm.eog_tfr = z_by_freq(sdm.eog_tfr)[:, ...]
         # The subject number is the first digit, the session number the second
         sdm.session_nr = sdm.subject_nr % 10
         sdm.subject_nr = sdm.subject_nr // 10
