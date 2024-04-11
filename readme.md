@@ -41,6 +41,7 @@ The analysis scripts are hosted on GitHub. However, the data files, intermediate
 - `output\` contains various output file:
   - TODO
 
+
 ### Analysis scripts
 
 The analysis scripts are named by the type of analysis they perform.
@@ -54,9 +55,9 @@ The analysis scripts are named by the type of analysis they perform.
 
 ## Data logbook
 
-In the `.vmrk` file for participant/session 82, line 263 contained an extraneous trigger that was manually removed.
-
-Participant/sessions 101, 102 were excluded due to excessive blinking and reduced data quality.
+- In the `.vmrk` file for session 82, line 263 contained an extraneous trigger that was manually removed.
+- In the `.vmrk` file for session 111, line 184 contained an extraneous trigger that was manually removed.
+- Sessions 101, 102 were excluded due to excessive blinking and reduced data quality.
 
 
 ## License

@@ -12,7 +12,6 @@ from datamatrix import operations as ops
 """
 # Load data
 """
-
 dm = get_merged_data()
 fdm = dm.field == 'full'
 

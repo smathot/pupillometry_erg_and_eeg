@@ -17,6 +17,7 @@ print(f'before blink removal: {len(dm)}')
 dm = (dm.blink_latency < 0) | (dm.blink_latency > .5)
 print(f'after blink removal: {len(dm)}')
 fdm = dm.field == 'full'
+add_bin_pupil(fdm)
 
 
 """
@@ -51,37 +52,66 @@ plt.ylabel('Frequency (Hz)')
 Plot the ERG and EEG signals after stimulus onset as a function of stimulus
 intensity for full-field flashes.
 """
-plt.figure(figsize=(8, 8))
+plt.figure(figsize=FIGSIZE)
 plt.subplot(211)
 plt.title(f'a) Full field ERG by intensity')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(ERG_PEAK1, color='green', linestyle=':')
-plt.axvline(ERG_PEAK2, color='green', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erg', hue_factor='intensity_cdm2', x0=-.05,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Intensity (cd/m2)'})
+y = -5e-6
+plt.hlines(y, xmin=.032, xmax=.054, color='gray')
+plt.hlines(y, xmin=.056, xmax=.084, linewidth=5, color='gray')
+plt.hlines(y, xmin=.086, xmax=.106, color='gray')
+plt.hlines(y, xmin=.116, xmax=.151, linewidth=5, color='gray')
+plt.xlim(0, .15)
 plt.xticks([])
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.subplot(212)
 plt.title(f'b) Full field EEG by intensity')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(ERG_PEAK1, color='green', linestyle=':')
-plt.axvline(ERG_PEAK2, color='green', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erp_occipital', hue_factor='intensity_cdm2',
          x0=-.05, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Intensity (cd/m2)'})
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
+y = -5e-6
+plt.hlines(y, xmin=.044, xmax=.084, color='gray')
+plt.hlines(y, xmin=.087, xmax=.106, color='gray')
+plt.xlim(0, .15)
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
 plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-intensity.svg')
 plt.show()
+
+
+"""
+Split by upper and lower electrodes. 
+"""
+plt.figure(figsize=FIGSIZE)
+plt.subplot(211)
+plt.title(f'a) Full field ERG by intensity (upper electrodes)')
+plt.ylim(*YLIM)
+plt.axhline(0, color='black', linestyle='-')
+tst.plot(fdm, dv='erg_upper', hue_factor='intensity_cdm2', x0=-.05,
+         sampling_freq=1000, hues='jet',
+         legend_kwargs={'title': 'Intensity (cd/m2)'})
+plt.xlim(0, .15)
+plt.xticks([])
+plt.ylabel('Voltage (µv)')
+plt.subplot(212)
+plt.title(f'b) Full field ERG by intensity (lower electrodes)')
+plt.ylim(*YLIM)
+plt.axhline(0, color='black', linestyle='-')
+tst.plot(fdm, dv='erg_lower', hue_factor='intensity_cdm2', x0=-.05,
+         sampling_freq=1000, hues='jet',
+         legend_kwargs={'title': 'Intensity (cd/m2)'})
+plt.xlim(0, .15)
+plt.ylabel('Voltage (µv)')
+plt.xlabel('Time since flash onset (s)')
+plt.savefig(FOLDER_SVG / 'erg-upper-lower-by-intensity.svg')
+plt.show()
+
 
 
 """
@@ -90,33 +120,26 @@ plt.show()
 Plot the ERG and EEG signals after stimulus onset as a function of visual 
 field, first for left vs right flashes.
 """
-plt.figure(figsize=(8, 8))
+plt.figure(figsize=FIGSIZE)
 plt.subplot(211)
 plt.title(f'Lateralized ERG by horizontal visual field')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(ERG_PEAK1, color='green', linestyle=':')
-plt.axvline(ERG_PEAK2, color='green', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'left', 'right'}, dv='laterg',
          hue_factor='field', x0=-.05, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Visual field'})
+plt.xlim(0, .15)
 plt.xticks([])
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.subplot(212)
 plt.title(f'Lateralized EEG by horizontal visual field')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(ERG_PEAK1, color='green', linestyle=':')
-plt.axvline(ERG_PEAK2, color='green', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'left', 'right'}, dv='laterp_occipital',
          hue_factor='field', x0=-.05, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Visual field'})
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
+plt.xlim(0, .15)
+plt.axhline(0, color='black', linestyle='-')
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
 plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-horizontal-field.svg')
@@ -126,33 +149,25 @@ plt.show()
 """
 And then for upper vs lower flashes.
 """
-plt.figure(figsize=(8, 8))
+plt.figure(figsize=FIGSIZE)
 plt.subplot(211)
 plt.title(f'ERG by vertical visual field')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(ERG_PEAK1, color='green', linestyle=':')
-plt.axvline(ERG_PEAK2, color='green', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'top', 'bottom'}, dv='erg',
          hue_factor='field', x0=-.05, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Visual field'})
+plt.xlim(0, .15)
 plt.xticks([])
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.subplot(212)
 plt.title(f'EEG by vertical visual field')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(ERG_PEAK1, color='green', linestyle=':')
-plt.axvline(ERG_PEAK2, color='green', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'top', 'bottom'}, dv='erp_occipital',
          hue_factor='field', x0=-.05, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Visual field'})
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
+plt.xlim(0, .15)
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
 plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-vertical-field.svg')
@@ -165,47 +180,58 @@ plt.show()
 Plot the ERG and EEG signals after stimulus onset as a function of pupil size
 (five bins) for full-field flashes.
 """
-# First calculate pupil bins
-fdm.bin_pupil = -1
-fdm.bin_pupil_mm = 0
-for i, bdm in enumerate(ops.bin_split(fdm.z_pupil, 2)):
-    fdm.bin_pupil[bdm] = i
-    fdm.bin_pupil_mm[bdm] = bdm.mean_pupil.mean
-# Then plot
-plt.figure(figsize=(8, 8))
+plt.figure(figsize=FIGSIZE)
 plt.subplot(211)
 plt.title(f'a) Full field ERG by pupil size (binned)')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(.04, color='black', linestyle=':')
-plt.axvline(.06, color='black', linestyle=':')
-plt.axvline(.08, color='black', linestyle=':')
-plt.axvline(.1, color='black', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erg', hue_factor='bin_pupil_mm', x0=-.05,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Pupil size'})
+y = -5e-6
+plt.hlines(y, xmin=.056, xmax=.076, color='gray')
+plt.hlines(y, xmin=.084, xmax=.151, color='gray', linewidth=5)
+plt.xlim(0, .15)
 plt.xticks([])
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.subplot(212)
 plt.title(f'b) Full field EEG by pupil size (binned)')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(.04, color='black', linestyle=':')
-plt.axvline(.06, color='black', linestyle=':')
-plt.axvline(.08, color='black', linestyle=':')
-plt.axvline(.1, color='black', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erp_occipital', hue_factor='bin_pupil_mm',
          x0=-.05, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Pupil size'})
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
+plt.xlim(0, .15)
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
 plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-pupil-size-bin.svg')
+
+
+"""
+Separately for upper and lower electrodes
+"""
+plt.figure(figsize=FIGSIZE)
+plt.subplot(211)
+plt.title(f'a) Full field ERG by pupil size (binned, upper electrodes)')
+plt.ylim(*YLIM)
+plt.axhline(0, color='black', linestyle='-')
+tst.plot(fdm, dv='erg_upper', hue_factor='bin_pupil_mm', x0=-.05,
+         sampling_freq=1000, hues='jet',
+         legend_kwargs={'title': 'Pupil size'})
+plt.xlim(0, .15)
+plt.xticks([])
+plt.ylabel('Voltage (µv)')
+plt.subplot(212)
+plt.title(f'a) Full field ERG by pupil size (binned, lower electrodes)')
+plt.ylim(*YLIM)
+plt.axhline(0, color='black', linestyle='-')
+tst.plot(fdm, dv='erg_lower', hue_factor='bin_pupil_mm', x0=-.05,
+         sampling_freq=1000, hues='jet',
+         legend_kwargs={'title': 'Pupil size'})
+plt.xlim(0, .15)
+plt.ylabel('Voltage (µv)')
+plt.xlabel('Time since flash onset (s)')
+plt.savefig(FOLDER_SVG / 'erg-upper-lower-by-pupil-size-bin.svg')
 
 
 """
@@ -214,40 +240,60 @@ plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-pupil-size-bin.svg')
 Plot the ERG and EEG signals after stimulus onset as a function of pupil-size
 change (dilating vs constricting) for full-field flashes.
 """
-plt.figure(figsize=(8, 8))
+plt.figure(figsize=FIGSIZE)
 plt.subplot(211)
 plt.title(f'a) Full field ERG by pupil-size change')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(.04, color='black', linestyle=':')
-plt.axvline(.06, color='black', linestyle=':')
-plt.axvline(.08, color='black', linestyle=':')
-plt.axvline(.1, color='black', linestyle=':')
+plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erg', hue_factor='pupil_dilation', x0=-.05,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Pupil-size change'})
+y = -5e-6
+plt.hlines(y, xmin=.026, xmax=.151, color='gray', linewidth=5)
+plt.xlim(0, .15)
+plt.xticks([])
+plt.ylabel('Voltage (µv)')
+plt.subplot(212)
+plt.title(f'b) Full field EEG by pupil-size change')
+plt.ylim(*YLIM)
+plt.axhline(0, color='black', linestyle='-')
+tst.plot(fdm, dv='erp_occipital', hue_factor='pupil_dilation',
+         x0=-.05, sampling_freq=1000, hues='jet',
+         legend_kwargs={'title': 'Pupil-size change'})
+plt.xlim(0, .15)
+plt.ylabel('Voltage (µv)')
+plt.xlabel('Time since flash onset (s)')
+plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-pupil-size-change.svg')
+
+
+"""
+Separately for upper and lower electrodes
+"""
+plt.figure(figsize=FIGSIZE)
+plt.subplot(211)
+plt.title(f'a) Full field ERG by pupil-size change (upper electrodes)')
+plt.ylim(*YLIM)
+plt.axhline(0, color='black', linestyle='-')
+tst.plot(fdm, dv='erg_upper', hue_factor='pupil_dilation', x0=-.05,
+         sampling_freq=1000, hues='jet',
+         legend_kwargs={'title': 'Pupil-size change'})
+plt.xlim(0, .15)
 plt.xticks([])
 plt.axhline(0, color='black', linestyle=':')
 plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.subplot(212)
-plt.title(f'b) Full field EEG by pupil-size change')
+plt.title(f'b) Full field ERG by pupil-size change (lower electrodes)')
 plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
-plt.axvline(.04, color='black', linestyle=':')
-plt.axvline(.06, color='black', linestyle=':')
-plt.axvline(.08, color='black', linestyle=':')
-plt.axvline(.1, color='black', linestyle=':')
-tst.plot(fdm, dv='erp_occipital', hue_factor='pupil_dilation',
-         x0=-.05, sampling_freq=1000, hues='jet',
+plt.axhline(0, color='black', linestyle='-')
+tst.plot(fdm, dv='erg_lower', hue_factor='pupil_dilation', x0=-.05,
+         sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Pupil-size change'})
+plt.xlim(0, .15)
 plt.axhline(0, color='black', linestyle=':')
-plt.axvline(0, color='black', linestyle=':')
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')
-plt.savefig(FOLDER_SVG / 'erg-and-eeg-by-pupil-size-change.svg')
+plt.savefig(FOLDER_SVG / 'erg-upper-lower-by-pupil-size-change.svg')
 
 
 """
@@ -290,26 +336,3 @@ plt.xlabel('Intensity (cd/m2)')
 plt.yticks([])
 plt.savefig(FOLDER_SVG / 'erg-by-pupil-size-bin-and-intensity.svg')
 plt.show()
-
-
-"""
-Plot variability by pupil size
-"""
-vdm = DataMatrix(length=fdm.intensity.count * fdm.bin_pupil.count 
-                 * fdm.subject_nr.count)
-vdm.pupil_std = SeriesColumn(depth=fdm.erg.depth - 50)
-for row, (intensity, bin_pupil, subject_nr, sdm) in zip(vdm,
-      ops.split(fdm.intensity, fdm.bin_pupil, fdm.subject_nr)):
-   row.intensity = intensity
-   row.bin_pupil = bin_pupil
-   row.subject_nr = subject_nr
-   row.pupil_std = sdm.erg.std[50:]
-
-for intensity, idm in ops.split(vdm.intensity):
-   tst.plot(idm, dv='pupil_std', hue_factor='bin_pupil')
-   plt.show()
-tst.plot(vdm, dv='pupil_std', hue_factor='bin_pupil')
-
-# vresult = tst.lmer_permutation_test(vdm,
-#    'pupil_std ~ bin_pupil + intensity', groups='subject_nr',
-#    suppress_convergence_warnings=True)

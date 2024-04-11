@@ -10,14 +10,24 @@ from eeg_eyetracking_parser import _eeg_preprocessing as eep
 import mne; mne.set_log_level(False)
 from mne.time_frequency import tfr_morlet
 from datamatrix import DataMatrix, convert as cnv, operations as ops, \
-    series as srs, functional as fnc
+    series as srs, functional as fnc, io
 import numpy as np
 from scipy.stats import linregress
+from sklearn.decomposition import PCA
 from pathlib import Path
+import matplotlib as mpl
+from matplotlib import pyplot as plt
 
-SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92
+# Plotting style
+plt.style.use('default')
+mpl.rcParams['font.family'] = 'Roboto Condensed'
+
+SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92, 111, 112, \
+    121, 122, 131, 132
 EEG_EPOCH = -0.05, 0.15
-CHECKPOINT = '22022024'
+EEG_PRESTIM_EPOCH = -0.15, .15
+N_PUPIL_BINS = 5
+CHECKPOINT = '25032024'
 PUPIL_EPOCH = 0, 1.5
 ERG_PEAK1 = .047
 ERG_PEAK2 = .076
@@ -26,6 +36,7 @@ YLIM = -6e-6, 9e-6
 STIMULUS_TRIGGER = 1
 FREQS = np.arange(4, 30, 1)
 MORLET_MARGIN = .5
+FIGSIZE = 6, 6
 
 Z_THRESHOLD = 3
 # Maps [-1, 1] intensity to cd/m2
@@ -147,14 +158,40 @@ def get_merged_data():
                             tmin=PUPIL_EPOCH[0], tmax=PUPIL_EPOCH[1],
                             metadata=metadata, baseline=None),
             ch_avg=True)
+        sdm.gaze_x = cnv.from_mne_epochs(
+            eet.PupilEpochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
+                            tmin=PUPIL_EPOCH[0], tmax=PUPIL_EPOCH[1],
+                            metadata=metadata, baseline=None, channel='GazeX'),
+            ch_avg=True)
+        sdm.gaze_y = cnv.from_mne_epochs(
+            eet.PupilEpochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
+                            tmin=PUPIL_EPOCH[0], tmax=PUPIL_EPOCH[1],
+                            metadata=metadata, baseline=None, channel='GazeY'),
+            ch_avg=True)
         sdm.eog = cnv.from_mne_epochs(
             mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
                        tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
                        picks='eog', metadata=metadata))
+        sdm.eog_nobaseline = cnv.from_mne_epochs(
+            mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
+                       tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
+                       picks='eog', metadata=metadata, baseline=None))
+        sdm.eog_prestim = cnv.from_mne_epochs(
+            mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
+                       tmin=EEG_PRESTIM_EPOCH[0], tmax=EEG_PRESTIM_EPOCH[1],
+                       picks='eog', metadata=metadata, baseline=None))
         sdm.erp = cnv.from_mne_epochs(
             mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
                        tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
                        picks='eeg', metadata=metadata))
+        sdm.erp_nobaseline = cnv.from_mne_epochs(
+            mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
+                       tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
+                       picks='eeg', metadata=metadata, baseline=None))
+        sdm.erp_prestim = cnv.from_mne_epochs(
+            mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
+                       tmin=EEG_PRESTIM_EPOCH[0], tmax=EEG_PRESTIM_EPOCH[1],
+                       picks='eeg', metadata=metadata, baseline=None))
         # Get time-frequency analyses
         epochs = mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
                        tmin=EEG_EPOCH[0] - MORLET_MARGIN,
@@ -171,11 +208,15 @@ def get_merged_data():
         sdm.session_nr = sdm.subject_nr % 10
         sdm.subject_nr = sdm.subject_nr // 10
         sdm.erg = sdm.eog[:, ...]
+        sdm.erg_nobaseline = sdm.eog_nobaseline[:, ...]
+        sdm.erg_prestim = sdm.eog_prestim[:, ...]
         sdm.erg_upper = sdm.eog[:, ('VEOGB', 'VEOGT')][:, ...]
         sdm.erg_lower = sdm.eog[:, ('HEOGL', 'HEOGR')][:, ...]
         sdm.laterg = sdm.eog[:, ('VEOGB', 'HEOGL')][:, ...] - \
             sdm.eog[:, ('VEOGT', 'HEOGR')][:, ...]
         sdm.erp_occipital = sdm.erp[:, ('O1', 'Oz', 'O2')][:, ...]
+        sdm.erp_occipital_nobaseline = sdm.erp_nobaseline[:, ('O1', 'Oz', 'O2')][:, ...]
+        sdm.erp_occipital_prestim = sdm.erp_prestim[:, ('O1', 'Oz', 'O2')][:, ...]
         sdm.laterp_occipital = sdm.erp[:, 'O1'] - sdm.erp[:, 'O2']
         # We first convert pupil size to millimeters, and then take the mean
         # over the first 150 ms (below the response latency), The slope is also
@@ -191,6 +232,7 @@ def get_merged_data():
         # on the slope indicating whether the pupil was constricting or
         # dilating.
         sdm.mean_pupil_area = sdm.mean_pupil ** 2
+        sdm.influx_adjustment = sdm.mean_pupil_area / sdm.mean_pupil_area.mean
         sdm.bl_pupil = srs.baseline(sdm.pupil, sdm.pupil, 0, 50)
         sdm.z_pupil = ops.z(sdm.mean_pupil)
         sdm.z_pupil_slope = ops.z(sdm.pupil_slope)
@@ -213,3 +255,18 @@ def get_merged_data():
     dm.has_blink = 0
     dm.has_blink[dm.blink_latency >= 0] = 1
     return dm
+
+
+def add_bin_pupil(dm):
+    """Adds bin_pupil and bin_pupil_slope columns to dm. Changes dm in place.
+    """
+    # Calculate pupil bins
+    dm.bin_pupil = -1
+    dm.bin_pupil_mm = 0
+    for i, bdm in enumerate(ops.bin_split(dm.z_pupil, N_PUPIL_BINS)):
+        dm.bin_pupil[bdm] = i
+        dm.bin_pupil_mm[bdm] = bdm.mean_pupil.mean
+    # Calculate pupil-slope bins
+    dm.bin_pupil_slope = -1
+    for i, bdm in enumerate(ops.bin_split(dm.z_pupil_slope, N_PUPIL_BINS)):
+        dm.bin_pupil_slope[bdm] = i

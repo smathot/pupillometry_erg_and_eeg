@@ -24,10 +24,11 @@ For each 20 ms time window, create a topographical map
 raw, events, metadata = read_subject(SUBJECTS[0])
 erp_pos = layout._find_topomap_coords(raw.info, 'eeg')
 eog_pos = np.array([
-    [-.05, .105],
-    [-.05, .11],
-    [.05, .105],
-    [.05, .11]])
+    [-.05, .105],  # VEOGT top
+    [-.05, .11],   # HEOGL bottom
+    [.05, .105],   # VEOGB top
+    [.05, .11],    # HEOGR bottom
+])
 pos = np.concatenate([erp_pos, eog_pos])
 dt = 20
 times = np.arange(0, 121, dt)
