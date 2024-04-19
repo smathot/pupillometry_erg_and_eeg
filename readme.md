@@ -44,13 +44,7 @@ The analysis scripts are hosted on GitHub. However, the data files, intermediate
 
 ### Analysis scripts
 
-The analysis scripts are named by the type of analysis they perform.
-
-- `analyze_main.py`
-- `analyze_blinks.py`
-- `analyze_stats.py`
-- `analyze_granger_causality.py`
-- `analysis_utils.py` -- A module with helper functions that are used by the other analysis scripts. This file is not intended to be executed directly.
+The analysis scripts are named by the type of analysis they perform. In addition, `analysis_utils.py` is a module with helper functions that are used by the other analysis scripts. This file is not intended to be executed directly.
 
 
 ## Data logbook
