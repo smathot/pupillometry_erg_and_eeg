@@ -54,13 +54,15 @@ erp_first = np.array(erp_first)
 """
 Then plot and statistically analyze the results
 """
+plt.figure(figsize=(6, 3))
 plt.plot(erg_first.T, ':', color='green')
-plt.plot(erg_first.mean(axis=0), color='green')
+plt.plot(erg_first.mean(axis=0), color='green', label='ERG to occipital ERP')
 plt.plot(erp_first.T, ':', color='red')
-plt.plot(erp_first.mean(axis=0), color='red')
+plt.plot(erp_first.mean(axis=0), color='red', label='Occipital ERP to ERG')
 plt.xticks(np.arange(0, maxlag - minlag, 5), np.arange(minlag, maxlag, 5))
 plt.ylabel('Granger causality')
 plt.xlabel('Lag (ms)')
+plt.legend(title='Direction')
 plt.savefig(FOLDER_SVG / 'granger-causality.svg')
 plt.show()
 ttest = ttest_rel(erg_first, erp_first)

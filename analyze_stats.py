@@ -138,34 +138,3 @@ results_erp = tst.lmer_permutation_test(fdm,
 print(results_erp)
 # Output
 # {'Intercept': [(104, 151, 241.8637994918009, 0.535), (66, 94, 103.64184434129604, 0.0), (42, 54, 28.354857410013334, 0.0)], 'z_int': [(44, 84, 181.2442494509215, 0.999), (88, 106, 106.66170507941264, 0.988), (138, 151, 51.25600127698418, 0.922), (114, 118, 8.256975799286591, 0.627)], 'z_pup': [(94, 102, 16.70387741684087, 0.845)], 'z_slo': []}
-
-
-"""
-Fixational drift
-"""
-import seaborn as sns
-import analysis_utils
-analysis_utils.N_PUPIL_BINS = 10
-add_bin_pupil(fdm)
-fdm.gaze_x = srs.smooth(fdm.gaze_x, winlen=11)
-fdm.gaze_y = srs.smooth(fdm.gaze_y, winlen=11)
-fdm.gaze_vel = ((fdm.gaze_x[1:, :150] - fdm.gaze_x[:-1, :150]) ** 2
-                + (fdm.gaze_y[1:, :150] - fdm.gaze_y[:-1, :150]) ** 2) ** .5
-fdm.mean_gaze_vel = fdm.gaze_vel[:, ...]
-gdm = fdm.mean_gaze_vel != np.nan
-gdm = gdm.mean_gaze_vel < 200
-fdm = fdm.mean_gaze_vel != np.nan
-fdm = fdm.mean_gaze_vel < 200
-sns.distplot(list(gdm.mean_gaze_vel))
-plt.show()
-tst.plot(gdm, dv='gaze_vel', hue_factor='bin_pupil')
-plt.show()
-tst.plot(gdm, dv='gaze_vel', hue_factor='pupil_dilation')
-plt.show()
-sns.pointplot(data=gdm, y='mean_gaze_vel', x='bin_pupil')
-plt.show()
-sns.pointplot(data=gdm, y='mean_gaze_vel', x='pupil_dilation')
-plt.show()
-model = mixedlm(formula='mean_gaze_vel ~ z_pup',
-                data=gdm, groups='subject_nr').fit()
-print(model.summary())

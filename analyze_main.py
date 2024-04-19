@@ -122,7 +122,7 @@ field, first for left vs right flashes.
 """
 plt.figure(figsize=FIGSIZE)
 plt.subplot(211)
-plt.title(f'Lateralized ERG by horizontal visual field')
+plt.title(f'a) Lateralized ERG by horizontal visual field')
 plt.ylim(*YLIM)
 plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'left', 'right'}, dv='laterg',
@@ -132,7 +132,7 @@ plt.xlim(0, .15)
 plt.xticks([])
 plt.ylabel('Voltage (µv)')
 plt.subplot(212)
-plt.title(f'Lateralized EEG by horizontal visual field')
+plt.title(f'b) Lateralized EEG by horizontal visual field')
 plt.ylim(*YLIM)
 plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'left', 'right'}, dv='laterp_occipital',
@@ -151,7 +151,7 @@ And then for upper vs lower flashes.
 """
 plt.figure(figsize=FIGSIZE)
 plt.subplot(211)
-plt.title(f'ERG by vertical visual field')
+plt.title(f'a) ERG by vertical visual field')
 plt.ylim(*YLIM)
 plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'top', 'bottom'}, dv='erg',
@@ -161,7 +161,7 @@ plt.xlim(0, .15)
 plt.xticks([])
 plt.ylabel('Voltage (µv)')
 plt.subplot(212)
-plt.title(f'EEG by vertical visual field')
+plt.title(f'b) EEG by vertical visual field')
 plt.ylim(*YLIM)
 plt.axhline(0, color='black', linestyle='-')
 tst.plot(dm.field == {'top', 'bottom'}, dv='erp_occipital',
