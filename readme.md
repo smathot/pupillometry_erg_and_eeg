@@ -1,4 +1,4 @@
-# Effects of pupil size and stimulus intensity on early retinal responses
+# Spontaneous Fluctuations in Pupil Size Shape Retinal Responses to Visual Stimuli
 
 Experimental resources for the following manuscript:
 
