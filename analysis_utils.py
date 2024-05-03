@@ -22,18 +22,27 @@ from matplotlib import pyplot as plt
 plt.style.use('default')
 mpl.rcParams['font.family'] = 'Roboto Condensed'
 
-SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92, 111, 112, \
-    121, 122, 131, 132
-EEG_EPOCH = -0.05, 0.15
-EEG_PRESTIM_EPOCH = -0.15, .15
+CHECKPOINT = '01052024'
+if 'hakan' in CHECKPOINT:
+    SUBJECTS = list(range(1, 17))
+else:
+    SUBJECTS = 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 91, 92, 111, \
+        112, 121, 122, 131, 132
 N_PUPIL_BINS = 5
-CHECKPOINT = '25032024'
+DATA_FOLDER = 'data-hakan' if 'hakan' in CHECKPOINT else 'data'
+MULTISESSION = False if 'hakan' in CHECKPOINT else True
+EEG_EPOCH = -0.1, 0.15
+X0 = EEG_EPOCH[0]
+EEG_OFFSET = int(-1 * 1000 * X0)
+ERG_PEAK_RANGE = EEG_OFFSET + 15, EEG_OFFSET + 40
 PUPIL_EPOCH = 0, 1.5
 ERG_PEAK1 = .047
 ERG_PEAK2 = .076
 MIN_BLINK_LATENCY = .1
 YLIM = -6e-6, 9e-6
-STIMULUS_TRIGGER = 1
+# The stimulus trigger is shifted 
+STIMULUS_TRIGGER = 2 if 'hakan' in CHECKPOINT else 1
+STIMULUS_TRIGGER_ADJUSTMENT = 19
 FREQS = np.arange(4, 30, 1)
 MORLET_MARGIN = .5
 FIGSIZE = 6, 6
@@ -123,7 +132,7 @@ def z_by_freq(col):
 
 def read_subject(subject_nr):
     return eet.read_subject(
-        subject_nr, eeg_preprocessing=[
+        subject_nr, folder=DATA_FOLDER, eeg_preprocessing=[
             'drop_unused_channels',
             'rereference_channels',
             'annotate_emg',
@@ -139,6 +148,7 @@ def get_merged_data():
     dm = DataMatrix()
     for subject_nr in SUBJECTS:
         raw, events, metadata = read_subject(subject_nr)
+        events[0][:, 0] += STIMULUS_TRIGGER_ADJUSTMENT
         sdm = cnv.from_pandas(metadata)
         sdm.blink_latency = -1
         trial_nr = -1
@@ -176,10 +186,6 @@ def get_merged_data():
             mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
                        tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
                        picks='eog', metadata=metadata, baseline=None))
-        sdm.eog_prestim = cnv.from_mne_epochs(
-            mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
-                       tmin=EEG_PRESTIM_EPOCH[0], tmax=EEG_PRESTIM_EPOCH[1],
-                       picks='eog', metadata=metadata, baseline=None))
         sdm.erp = cnv.from_mne_epochs(
             mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
                        tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
@@ -187,10 +193,6 @@ def get_merged_data():
         sdm.erp_nobaseline = cnv.from_mne_epochs(
             mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
                        tmin=EEG_EPOCH[0], tmax=EEG_EPOCH[1],
-                       picks='eeg', metadata=metadata, baseline=None))
-        sdm.erp_prestim = cnv.from_mne_epochs(
-            mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
-                       tmin=EEG_PRESTIM_EPOCH[0], tmax=EEG_PRESTIM_EPOCH[1],
                        picks='eeg', metadata=metadata, baseline=None))
         # Get time-frequency analyses
         epochs = mne.Epochs(raw, eet.epoch_trigger(events, STIMULUS_TRIGGER),
@@ -205,18 +207,19 @@ def get_merged_data():
         sdm.eog_tfr = cnv.from_mne_tfr(morlet)
         sdm.eog_tfr = z_by_freq(sdm.eog_tfr)[:, ...]
         # The subject number is the first digit, the session number the second
-        sdm.session_nr = sdm.subject_nr % 10
-        sdm.subject_nr = sdm.subject_nr // 10
+        if MULTISESSION:
+            sdm.session_nr = sdm.subject_nr % 10
+            sdm.subject_nr = sdm.subject_nr // 10
+        else:
+            sdm.session_nr = 1
         sdm.erg = sdm.eog[:, ...]
         sdm.erg_nobaseline = sdm.eog_nobaseline[:, ...]
-        sdm.erg_prestim = sdm.eog_prestim[:, ...]
         sdm.erg_upper = sdm.eog[:, ('VEOGB', 'VEOGT')][:, ...]
         sdm.erg_lower = sdm.eog[:, ('HEOGL', 'HEOGR')][:, ...]
         sdm.laterg = sdm.eog[:, ('VEOGB', 'HEOGL')][:, ...] - \
             sdm.eog[:, ('VEOGT', 'HEOGR')][:, ...]
         sdm.erp_occipital = sdm.erp[:, ('O1', 'Oz', 'O2')][:, ...]
         sdm.erp_occipital_nobaseline = sdm.erp_nobaseline[:, ('O1', 'Oz', 'O2')][:, ...]
-        sdm.erp_occipital_prestim = sdm.erp_prestim[:, ('O1', 'Oz', 'O2')][:, ...]
         sdm.laterp_occipital = sdm.erp[:, 'O1'] - sdm.erp[:, 'O2']
         # We first convert pupil size to millimeters, and then take the mean
         # over the first 150 ms (below the response latency), The slope is also
@@ -238,7 +241,7 @@ def get_merged_data():
         sdm.z_pupil_slope = ops.z(sdm.pupil_slope)
         sdm.pupil_dilation = 'Constricting'
         sdm.pupil_dilation[sdm.pupil_slope > 0] = 'Dilating'
-        sdm.z_erg = ops.z(sdm.erg[:, 90:110][:, ...])
+        sdm.z_erg = ops.z(sdm.erg[:, 115:140][:, ...])
         dm <<= sdm
     dm = dm.z_erg != np.nan
     dm = dm.mean_pupil != np.nan
@@ -248,10 +251,16 @@ def get_merged_data():
     dm = dm.z_pupil > -Z_THRESHOLD
     dm = dm.z_pupil_slope < Z_THRESHOLD
     dm = dm.z_pupil_slope > -Z_THRESHOLD
-    dm = dm.target == 0
-    dm.intensity_cdm2 = dm.intensity @ (lambda i: INTENSITY_CDM2[i])
-    dm.intensity_ord = dm.intensity @ (lambda i: INTENSITY_ORD[i])
-    dm.influx_cdm2 = dm.intensity_cdm2 * dm.mean_pupil ** 2
+    if 'target' in dm:
+        dm = dm.target == 0
+    if 'backgroundLevel' in dm:
+        dm.intensity = dm.backgroundLevel
+        dm.intensity_cdm2 = dm.intensity
+        dm.intensity_ord = dm.intensity
+    else:
+        dm.intensity_cdm2 = dm.intensity @ (lambda i: INTENSITY_CDM2[i])
+        dm.intensity_ord = dm.intensity @ (lambda i: INTENSITY_ORD[i])
+        dm.influx_cdm2 = dm.intensity_cdm2 * dm.mean_pupil ** 2
     dm.has_blink = 0
     dm.has_blink[dm.blink_latency >= 0] = 1
     return dm
@@ -270,3 +279,19 @@ def add_bin_pupil(dm):
     dm.bin_pupil_slope = -1
     for i, bdm in enumerate(ops.bin_split(dm.z_pupil_slope, N_PUPIL_BINS)):
         dm.bin_pupil_slope[bdm] = i
+
+
+def filter_dm(dm, del_erp=True):
+    if del_erp:
+        del dm.erp  # free memory
+    print(f'before blink removal: {len(dm)}')
+    dm = (dm.blink_latency < 0) | (dm.blink_latency > .5)
+    print(f'after blink removal: {len(dm)}')
+    if 'field' in dm:
+       fdm = dm.field == 'full'
+    else:
+       fdm = dm
+    if 'training' in fdm:
+       fdm = fdm.training == 'no'
+    add_bin_pupil(fdm)
+    return dm, fdm

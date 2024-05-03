@@ -12,12 +12,7 @@ from datamatrix import SeriesColumn, DataMatrix
 # Load data
 """
 dm = get_merged_data()
-del dm.erp  # free memory
-print(f'before blink removal: {len(dm)}')
-dm = (dm.blink_latency < 0) | (dm.blink_latency > .5)
-print(f'after blink removal: {len(dm)}')
-fdm = dm.field == 'full'
-add_bin_pupil(fdm)
+dm, fdm = filter_dm(dm)
 
 
 """
@@ -28,16 +23,16 @@ deviation of the ERG and ERP signals is stored as a new series column.
 """
 vdm_bin_pupil = DataMatrix(length=fdm.intensity.count * fdm.bin_pupil.count 
                  * fdm.subject_nr.count)
-vdm_bin_pupil.erg_std = SeriesColumn(depth=fdm.erg.depth - 50)
-vdm_bin_pupil.erp_std = SeriesColumn(depth=fdm.erp_occipital.depth - 50)
+vdm_bin_pupil.erg_std = SeriesColumn(depth=fdm.erg.depth - EEG_OFFSET)
+vdm_bin_pupil.erp_std = SeriesColumn(depth=fdm.erp_occipital.depth - EEG_OFFSET)
 # vdm_bin_pupil.gaze_std = SeriesColumn(depth=fdm.gaze_vel.depth)
 for row, (intensity, bin_pupil, subject_nr, sdm) in zip(vdm_bin_pupil,
       ops.split(fdm.intensity, fdm.bin_pupil, fdm.subject_nr)):
    row.intensity = intensity
    row.bin_pupil = bin_pupil
    row.subject_nr = subject_nr
-   row.erg_std = sdm.erg_nobaseline.std[50:]
-   row.erp_std = sdm.erp_occipital_nobaseline.std[50:]
+   row.erg_std = sdm.erg_nobaseline.std[EEG_OFFSET:]
+   row.erp_std = sdm.erp_occipital_nobaseline.std[EEG_OFFSET:]
    
    
 plt.figure(figsize=FIGSIZE)
@@ -69,16 +64,16 @@ As above, but then separate for pupil dilation and constriction
 vdm_pupil_dilation = DataMatrix(length=fdm.intensity.count 
                                 * fdm.pupil_dilation.count
                                 * fdm.subject_nr.count)
-vdm_pupil_dilation.erg_std = SeriesColumn(depth=fdm.erg.depth - 50)
-vdm_pupil_dilation.erp_std = SeriesColumn(depth=fdm.erp_occipital.depth - 50)
+vdm_pupil_dilation.erg_std = SeriesColumn(depth=fdm.erg.depth - EEG_OFFSET)
+vdm_pupil_dilation.erp_std = SeriesColumn(depth=fdm.erp_occipital.depth - EEG_OFFSET)
 for row, (intensity, pupil_dilation, subject_nr, sdm) in zip(
       vdm_pupil_dilation,
       ops.split(fdm.intensity, fdm.pupil_dilation, fdm.subject_nr)):
    row.intensity = intensity
    row.pupil_dilation = pupil_dilation
    row.subject_nr = subject_nr
-   row.erg_std = sdm.erg_nobaseline.std[50:]
-   row.erp_std = sdm.erp_occipital_nobaseline.std[50:]
+   row.erg_std = sdm.erg_nobaseline.std[EEG_OFFSET:]
+   row.erp_std = sdm.erp_occipital_nobaseline.std[EEG_OFFSET:]
    
    
 plt.figure(figsize=FIGSIZE)
@@ -111,50 +106,34 @@ result_erg_bin_pupil = tst.lmer_permutation_test(vdm_bin_pupil,
    'erg_std ~ bin_pupil + intensity', groups='subject_nr',
    suppress_convergence_warnings=True)
 print(result_erg_bin_pupil)
-# For non-baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1439.7196152471026, 0.996)], 'bin_pupil': [(0, 151, 357.6170572914245, 0.993)], 'intensity': []}
-#
-# For baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1607.5309512623128, 1.0)], 'bin_pupil': [(63, 151, 319.09325830520874, 1.0), (0, 42, 118.6424451962442, 0.982), (51, 54, 5.968038848591654, 0.692)], 'intensity': []}
-#
-# Control analysis after excluding trials with mean gaze velocity > 200
-# Output:
-# {'Intercept': [(0, 151, 1595.4887193992306, 1.0)], 'bin_pupil': [(64, 151, 302.19229455147587, 0.998), (10, 57, 131.24767906586305, 0.978)], 'intensity': []}
+# Output
+# {'Intercept': [(0, 151, 1415.4855411207257, 0.0)],
+#  'bin_pupil': [],
+#  'intensity': []}
 
 result_erp_bin_pupil = tst.lmer_permutation_test(vdm_bin_pupil,
    'erp_std ~ bin_pupil + intensity', groups='subject_nr',
    suppress_convergence_warnings=True)
 print(result_erp_bin_pupil)
-# For non-baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1891.0498128198317, 0.124)], 'bin_pupil': [(5, 18, 28.036962698852413, 0.845)], 'intensity': []}
-#
-# For baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1665.8808516710758, 0.318)], 'bin_pupil': [(69, 77, 17.27321748502119, 0.669)], 'intensity': []}
+# Output
+# {'Intercept': [(0, 151, 1931.1045173217194, 0.147)],
+#  'bin_pupil': [(0, 1, 1.9674423369775385, 0.702)],
+#  'intensity': []}
 
 result_erg_pupil_dilation = tst.lmer_permutation_test(vdm_pupil_dilation,
    'erg_std ~ pupil_dilation + intensity', groups='subject_nr',
    suppress_convergence_warnings=True)
 print(result_erg_pupil_dilation)
-# For non-baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1236.4045841665286, 0.965)], 'pupil_dilation[T.Dilating]': [(124, 130, 11.846359311752675, 0.926)], 'intensity': []}
-#
-# For baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1511.7901320515743, 0.0)], 'pupil_dilation[T.Dilating]': [], 'intensity': []}
+# Output
+# {'Intercept': [(0, 151, 1468.0597455728664, 0.0)],
+#  'pupil_dilation[T.Dilating]': [],
+#  'intensity': []}
 
 result_erp_pupil_dilation = tst.lmer_permutation_test(vdm_pupil_dilation,
    'erp_std ~ pupil_dilation + intensity', groups='subject_nr',
    suppress_convergence_warnings=True)
 print(result_erp_pupil_dilation)
-# For non-baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1883.0479001258147, 0.0)], 'pupil_dilation[T.Dilating]': [], 'intensity': []}
-#
-# For baseline-corrected signal:
-# Output:
-# {'Intercept': [(0, 151, 1666.789422073107, 0.066)], 'pupil_dilation[T.Dilating]': [(0, 41, 124.18694026929987, 0.999)], 'intensity': [(101, 108, 14.94440696902355, 0.624)]}
+# Output
+# {'Intercept': [(0, 151, 1917.8152932990054, 0.0)],
+#  'pupil_dilation[T.Dilating]': [],
+#  'intensity': []}

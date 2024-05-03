@@ -11,10 +11,7 @@ from scipy.stats import ttest_rel
 # Load data
 """
 dm = get_merged_data()
-print(f'before blink removal: {len(dm)}')
-dm = (dm.blink_latency < 0) | (dm.blink_latency > .5)
-print(f'after blink removal: {len(dm)}')
-fdm = dm.field == 'full'
+dm, fdm = filter_dm(dm)
 
 
 """
