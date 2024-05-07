@@ -6,6 +6,8 @@ import time_series_test as tst
 from statsmodels.formula.api import ols
 from matplotlib import pyplot as plt
 from statsmodels.formula.api import mixedlm
+import seaborn as sns
+
 
 
 """
@@ -38,10 +40,24 @@ for subject_nr, intensity, sdm in ops.split(fdm.subject_nr, fdm.intensity):
 
    
 """
+Trim outlying peak values
+"""
+sd = fdm.erg25_peak.std
+m = fdm.erg25_peak.mean
+peak_dm = fdm.erg25_peak > m - 2 * sd
+peak_dm = peak_dm.erg25_peak < m + 2 * sd
+plt.subplot(121)
+sns.distplot(fdm.erg25_peak)
+plt.subplot(122)
+sns.distplot(peak_dm.erg25_peak)
+plt.show()
+
+
+"""
 Individual correlations between pupil-size change and ERG45
 """
 tdm = DataMatrix(length=fdm.subject_nr.count)
-for row, (subject_nr, sdm) in zip(tdm, ops.split(fdm.subject_nr)):
+for row, (subject_nr, sdm) in zip(tdm, ops.split(peak_dm.subject_nr)):
    model = ols('erg25_peak ~ z_int + z_pup + z_slo', data=sdm).fit()
    row.z_int = model.tvalues['z_int']
    row.z_pup = model.tvalues['z_pup']
@@ -54,12 +70,22 @@ plt.legend()
 
 
 """
+Plot ERG25 peak by intensity and pupil dilation.
+"""
+plt.figure(figsize=(1.5,1.5))
+sns.pointplot(x='pupil_dilation', y='erg25_peak', hue='intensity',
+              data=peak_dm)
+plt.savefig(FOLDER_SVG / 'erg25-peak.svg')
+plt.show()
+
+
+"""
 # Statistics
 
-Predict ERG45 peak based on intensity, pupil size, and stimulus intensity.
+Predict ERG25 peak based on intensity, pupil size, and stimulus intensity.
 """
 model = mixedlm(formula='erg25_peak ~ z_int + z_pup + z_slo',
-                data=fdm, groups='subject_nr').fit()
+                data=peak_dm, groups='subject_nr').fit()
 print(model.summary())
 
 

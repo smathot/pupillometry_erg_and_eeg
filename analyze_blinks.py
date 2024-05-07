@@ -26,8 +26,8 @@ plt.plot(fdm.eog[..., 'VEOGT'][0], label='VEOGT (upper right)')
 plt.plot(fdm.eog[..., 'HEOGL'][0], label='HEOGL (lower left)')
 plt.plot(fdm.eog[..., 'HEOGR'][0], label='HEOGR (lower right)')
 plt.axhline(0, color='black', linestyle=':')
-plt.axvline(50, color='black', linestyle=':')
-plt.xticks(np.arange(0, 201, 50), np.arange(-50, 151, 50))
+plt.axvline(100, color='black', linestyle=':')
+plt.xticks(np.arange(0, 251, 50), np.arange(-100, 151, 50))
 plt.xlabel('Time since flash onset (ms)')
 plt.ylabel('Voltage')
 plt.legend()
@@ -42,7 +42,7 @@ def plot_eog_by_blink(fdm, path, ylim=(-9e6, 9e6)):
    plt.figure(figsize=FIGSIZE)
    plt.subplot(211)
    plt.title('a) Upper-eyelid electrodes')
-   tst.plot(fdm, dv='erg_upper', hue_factor='has_blink', x0=-.05,
+   tst.plot(fdm, dv='erg_upper', hue_factor='has_blink', x0=X0,
             sampling_freq=1000, hues='jet',
             legend_kwargs={'title': 'Blink presence'})
    # plt.xlabel('Time since flash onset (s)')
@@ -54,7 +54,7 @@ def plot_eog_by_blink(fdm, path, ylim=(-9e6, 9e6)):
       plt.ylim(-9e-6, 9e-6)
    plt.subplot(212)
    plt.title('b) Lower-eyelid electrodes')
-   tst.plot(fdm, dv='erg_lower', hue_factor='has_blink', x0=-.05,
+   tst.plot(fdm, dv='erg_lower', hue_factor='has_blink', x0=X0,
             sampling_freq=1000, hues='jet',
             legend_kwargs={'title': 'Blink presence'})
    plt.xlabel('Time since flash onset (s)')

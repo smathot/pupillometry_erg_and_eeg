@@ -14,6 +14,18 @@ from datamatrix import SeriesColumn
 dm = get_merged_data()
 dm, fdm = filter_dm(dm)
 
+"""
+x
+"""
+fdm.erg_amp = fdm.erg[:, ...]
+m = fdm.erg_amp.mean
+std = fdm.erg_amp.std
+plt.plot(fdm.erg.plottable, alpha=.25); plt.show()
+
+cdm = fdm.erg_amp > m - 3 * std
+cdm = cdm.erg_amp < m + 3 * std
+plt.plot(cdm.erg.plottable, alpha=.25); plt.show()
+
 
 """
 # Pupil constriction
@@ -55,11 +67,11 @@ plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erg', hue_factor='intensity_cdm2', x0=X0,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Intensity (cd/m2)'})
-y = -5e-6
-plt.hlines(y, xmin=.032, xmax=.054, color='gray')
-plt.hlines(y, xmin=.056, xmax=.084, linewidth=5, color='gray')
-plt.hlines(y, xmin=.086, xmax=.106, color='gray')
-plt.hlines(y, xmin=.116, xmax=.151, linewidth=5, color='gray')
+clusters = [(94, 151, 588.644491911626, 1.0),
+  (38, 64, 242.5394210652641, 0.998),
+  (12, 36, 212.02132303969242, 0.997),
+  (68, 88, 113.98986841669849, 0.975)]
+annotate_clusters(clusters)
 plt.xlim(0, .15)
 plt.xticks([])
 plt.ylabel('Voltage (µv)')
@@ -70,7 +82,11 @@ plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erp_occipital', hue_factor='intensity_cdm2',
          x0=X0, sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Intensity (cd/m2)'})
-y = -5e-6
+clusters = [(116, 151, 183.47360047954274, 0.999),
+  (24, 64, 171.89639861702193, 0.999),
+  (68, 88, 118.39609350450344, 0.995),
+  (94, 100, 12.794898805235192, 0.653)]
+annotate_clusters(clusters)
 plt.hlines(y, xmin=.044, xmax=.084, color='gray')
 plt.hlines(y, xmin=.087, xmax=.106, color='gray')
 plt.xlim(0, .15)
@@ -183,9 +199,9 @@ plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erg', hue_factor='bin_pupil_mm', x0=X0,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Pupil size'})
-y = -5e-6
-plt.hlines(y, xmin=.056, xmax=.076, color='gray')
-plt.hlines(y, xmin=.084, xmax=.151, color='gray', linewidth=5)
+clusters = [(64, 151, 526.3421609758193, 1.0),
+            (36, 56, 66.31554008492043, 0.967)]
+annotate_clusters(clusters)
 plt.xlim(0, .15)
 plt.xticks([])
 plt.ylabel('Voltage (µv)')
@@ -243,8 +259,8 @@ plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erg', hue_factor='pupil_dilation', x0=X0,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Pupil-size change'})
-y = -5e-6
-plt.hlines(y, xmin=.026, xmax=.151, color='gray', linewidth=5)
+clusters = [(16, 151, 606.7320941314092, 1.0)]
+annotate_clusters(clusters)
 plt.xlim(0, .15)
 plt.xticks([])
 plt.ylabel('Voltage (µv)')

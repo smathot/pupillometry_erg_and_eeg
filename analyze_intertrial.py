@@ -35,26 +35,12 @@ fdm = idm
 Plot the ERG and EEG signals after stimulus onset as a function of stimulus
 intensity for full-field flashes.
 """
-plt.figure(figsize=FIGSIZE)
-plt.subplot(211)
-plt.title(f'a) Full field ERG by intensity (previous trial)')
+plt.figure(figsize=(6, 3))
 plt.ylim(*YLIM)
 plt.axhline(0, color='black', linestyle='-')
 tst.plot(fdm, dv='erg', hue_factor='previous_intensity_cdm2', x0=-.05,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Intensity (cd/m2)'})
-y = -5e-6
-plt.xlim(0, .15)
-plt.xticks([])
-plt.ylabel('Voltage (µv)')
-plt.subplot(212)
-plt.title(f'b) Full field EEG by intensity (previous trial)')
-plt.ylim(*YLIM)
-plt.axhline(0, color='black', linestyle='-')
-tst.plot(fdm, dv='erp_occipital', hue_factor='previous_intensity_cdm2',
-         x0=-.05, sampling_freq=1000, hues='jet',
-         legend_kwargs={'title': 'Intensity (cd/m2)'})
-y = -5e-6
 plt.xlim(0, .15)
 plt.ylabel('Voltage (µv)')
 plt.xlabel('Time since flash onset (s)')

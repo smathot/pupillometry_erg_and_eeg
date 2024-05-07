@@ -10,10 +10,7 @@ from matplotlib import pyplot as plt
 # Load data
 """
 dm = get_merged_data()
-print(f'before blink removal: {len(dm)}')
-dm = (dm.blink_latency < 0) | (dm.blink_latency > .5)
-print(f'after blink removal: {len(dm)}')
-fdm = dm.field == 'full'
+dm, fdm = filter_dm(dm, del_erp=False)
 
 
 """
@@ -30,13 +27,13 @@ eog_pos = np.array([
     [.05, .11],    # HEOGR bottom
 ])
 pos = np.concatenate([erp_pos, eog_pos])
-dt = 20
+dt = 10
 times = np.arange(0, 121, dt)
 data = np.zeros([len(times), fdm.erp.shape[1] + fdm.eog.shape[1]])
 for i, t in enumerate(times):
     erp = np.concatenate([
-        fdm.erp[:,:,50 + t:50 + t + dt][..., :, ...],
-        fdm.eog[:,:,50 + t:50 + t + dt][..., :, ...]])
+        fdm.erp[:,:,EEG_OFFSET + t:EEG_OFFSET + t + dt][..., :, ...],
+        fdm.eog[:,:,EEG_OFFSET + t:EEG_OFFSET + t + dt][..., :, ...]])
     data[i] = erp
 for i, t in enumerate(times):
     ax = plt.gca()

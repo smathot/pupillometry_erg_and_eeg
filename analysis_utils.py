@@ -295,3 +295,18 @@ def filter_dm(dm, del_erp=True):
        fdm = fdm.training == 'no'
     add_bin_pupil(fdm)
     return dm, fdm
+
+
+def annotate_clusters(clusters, y=-5e-6):
+    for xmin, xmax, zsum, hits in clusters:
+        p = 1 - hits
+        if p < .001:
+           linewidth = 5
+        elif p < .01:
+           linewidth = 3
+        elif p < .05:
+           linewidth = 1
+        else:
+           continue
+        plt.hlines(y, xmin=xmin / 1000, xmax=xmax / 1000, color='gray',
+                   linewidth=linewidth)
