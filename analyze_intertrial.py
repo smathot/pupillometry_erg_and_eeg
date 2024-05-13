@@ -38,7 +38,7 @@ intensity for full-field flashes.
 plt.figure(figsize=(6, 3))
 plt.ylim(*YLIM)
 plt.axhline(0, color='black', linestyle='-')
-tst.plot(fdm, dv='erg', hue_factor='previous_intensity_cdm2', x0=-.05,
+tst.plot(fdm, dv='erg', hue_factor='previous_intensity_cdm2', x0=-.1,
          sampling_freq=1000, hues='jet',
          legend_kwargs={'title': 'Intensity (cd/m2)'})
 plt.xlim(0, .15)
